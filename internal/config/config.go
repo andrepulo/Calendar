@@ -19,11 +19,13 @@ type Config struct {
 }
 
 type DB struct {
-	URI string `env:"DB_URI" envDefault:"postgres://postgres:postgres@localhost:5432/dbname"`
+	URI      string `env:"DB_URI" envDefault:"postgres://postgres@localhost:5432/dbname"`
+	Username string `env:"DB_USERNAME" envDefault:"postgres"`
+	Password string `env:"DB_PASSWORD,required"`
 }
 
 type Security struct {
-	SecretKey string `env:"SECRET_KEY,required"`
+	SecretKey string `env:"SECRET_KEY"`
 }
 
 type HTTPConfig struct {
@@ -35,6 +37,14 @@ func Load() (*Config, error) {
 	if err := env.Parse(cfg); err != nil {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
+
+	// Формирование полного URI с учетом пароля
+	cfg.DB.URI = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
+		cfg.DB.Username,
+		cfg.DB.Password,
+		"localhost:5432",
+		"postgres")
+
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
@@ -42,12 +52,5 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) Validate() error {
-	if c.Security.SecretKey == "" {
-		return fmt.Errorf("secret key is required")
-	}
-	if len(c.Security.SecretKey) < 32 {
-		return fmt.Errorf("secret key should be at least 32 characters long")
-	}
-
 	return nil
 }

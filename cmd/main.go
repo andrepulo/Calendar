@@ -11,10 +11,15 @@ import (
 	"time"
 
 	"github.com/andrepulo/Calendar/internal/config"
+	"github.com/andrepulo/Calendar/internal/databases"
 	"github.com/andrepulo/Calendar/internal/logger"
+	_ "github.com/lib/pq" // Import PostgreSQL driver
 )
 
 func main() {
+	// Set environment variable for testing
+	os.Setenv("DB_PASSWORD", "user07d07a")
+
 	// Загрузка конфигурации
 	cfg, err := config.Load()
 	if err != nil {
@@ -23,13 +28,24 @@ func main() {
 
 	// Инициализация логгера
 	loggerConfig := logger.Config{
-		Level: os.Getenv(config.EnvLogLevel), // Используем переменную окружения для уровня логирования
+		Level: os.Getenv(config.EnvLogLevel),
 	}
 	l, err := logger.New(loggerConfig)
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 	defer l.Sync()
+
+	// Инициализация базы данных
+	dbConfig := database.Config{
+		URI: cfg.DB.URI,
+	}
+	fmt.Printf("Connecting to database with URI: %s\n", dbConfig.URI) // Вывод строки подключения
+	db, err := database.New(dbConfig)
+	if err != nil {
+		l.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
 
 	// Простой обработчик для проверки работы сервера
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
