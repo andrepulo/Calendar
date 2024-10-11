@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"your_project/internal/config"
-	"your_project/internal/logger"
+	"github.com/andrepulo/Calendar/internal/config"
+	"github.com/andrepulo/Calendar/internal/logger"
 )
 
 func main() {
@@ -22,10 +22,14 @@ func main() {
 	}
 
 	// Инициализация логгера
-	logger, err := logger.New(logger.Config{Level: cfg.LogLevel})
+	loggerConfig := logger.Config{
+		Level: os.Getenv(config.EnvLogLevel), // Используем переменную окружения для уровня логирования
+	}
+	l, err := logger.New(loggerConfig)
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
+	defer l.Sync()
 
 	// Простой обработчик для проверки работы сервера
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -38,9 +42,9 @@ func main() {
 	}
 
 	go func() {
-		logger.Infof("Starting server on port %d", cfg.HTTP.Port)
+		l.Infof("Starting server on port %d", cfg.HTTP.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatalf("Server failed to start: %v", err)
+			l.Fatalf("Server failed to start: %v", err)
 		}
 	}()
 
@@ -49,14 +53,14 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Shutting down server...")
+	l.Info("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Fatalf("Server forced to shutdown: %v", err)
+		l.Fatalf("Server forced to shutdown: %v", err)
 	}
 
-	logger.Info("Server exiting")
+	l.Info("Server exiting")
 }
