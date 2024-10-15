@@ -48,10 +48,10 @@ func Parse() (*Config, error) {
 	return &cfg, nil
 }
 
-// validateConfig проверяет загруж��нную конфигурацию.
+// validateConfig проверяет загруженную конфигурацию.
 func validateConfig(cfg *Config) error {
 	if cfg.DB.URI == "" {
-		return fmt.Errorf("требуется URI базы данн��х")
+		return fmt.Errorf("требуется URI базы данных")
 	}
 	if cfg.Security.SecretKey == "" {
 		return fmt.Errorf("требуется секретный ключ безопасности")

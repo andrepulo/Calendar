@@ -14,6 +14,7 @@ import (
 	"github.com/rgurov/pgerrors"
 )
 
+// Repository представляет репозиторий для работы с пользователями.
 type Repository struct {
 	db *databases.DB
 }
@@ -33,6 +34,7 @@ INSERT INTO users (
 )
 `
 
+// Create добавляет нового пользователя в базу данных.
 func (r *Repository) Create(ctx context.Context, user users.User) error {
 	_, err := r.db.ExecContext(ctx, createQuery,
 		user.ID,
@@ -40,6 +42,7 @@ func (r *Repository) Create(ctx context.Context, user users.User) error {
 		user.Password,
 	)
 	if err != nil {
+		// Проверяем, если ошибка связана с уникальностью логина.
 		if strings.Contains(err.Error(), pgerrors.UniqueViolation) {
 			return fmt.Errorf("user with login %s: %w", user.Login, apperrs.ErrAlreadyExist)
 		}
@@ -49,6 +52,7 @@ func (r *Repository) Create(ctx context.Context, user users.User) error {
 	return nil
 }
 
+// Update обновляет данные пользователя в б��зе данных.
 func (r *Repository) Update(ctx context.Context, userID users.UserID, changes users.UserChanges) error {
 	qb := squirrel.Update("users").Where(squirrel.Eq{"id": userID})
 	qb = qb.SetMap(changesBuilder(changes).ToMap())
@@ -66,6 +70,7 @@ func (r *Repository) Update(ctx context.Context, userID users.UserID, changes us
 	return nil
 }
 
+// Get возвращает пользователя из базы данных по за��анному фильтру.
 func (r *Repository) Get(ctx context.Context, filter users.UserFilter) (_ users.User, err error) {
 	var zero users.User
 
@@ -93,8 +98,10 @@ func (r *Repository) Get(ctx context.Context, filter users.UserFilter) (_ users.
 	return u, nil
 }
 
+// changesBuilder помогает строить карту изменений для обновления пользователя.
 type changesBuilder users.UserChanges
 
+// ToMap преобразует изменения пользователя в карту.
 func (b changesBuilder) ToMap() map[string]any {
 	fields := make(map[string]any)
 	if b.Password != nil {
@@ -104,8 +111,10 @@ func (b changesBuilder) ToMap() map[string]any {
 	return fields
 }
 
+// userFilterBuilder помогает строить условия фильтрации для запроса пользователя.
 type userFilterBuilder users.UserFilter
 
+// apply применяет фильтры к запросу.
 func (f userFilterBuilder) apply(qb squirrel.SelectBuilder) squirrel.SelectBuilder {
 	if f.ID != nil {
 		qb = qb.Where(squirrel.Eq{"id": *f.ID})
