@@ -5,6 +5,7 @@ go 1.23
 require (
 	github.com/caarlos0/env/v11 v11.0.0
 	go.uber.org/zap v1.10.0
+	github.com/jackc/pgx v3.6.2+incompatible
 
 )
 

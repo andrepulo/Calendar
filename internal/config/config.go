@@ -3,54 +3,61 @@ package config
 import (
 	"fmt"
 	"github.com/caarlos0/env/v11"
+	"log"
 )
 
-const (
-	EnvDBURI     = "DB_URI"
-	EnvSecretKey = "SECRET_KEY"
-	EnvHTTPPort  = "HTTP_PORT"
-	EnvLogLevel  = "LOG_LEVEL"
-)
-
+// Config представляет основную структуру конфигурации приложения.
 type Config struct {
-	DB       DB
-	Security Security
-	HTTP     HTTPConfig
+	DB       DB         // Конфигурация базы данных
+	Security Security   // Конфигурация безопасности
+	HTTP     HTTPConfig // Конфигурация HTTP
 }
 
+// DB представляет структуру конфигурации базы данных.
 type DB struct {
-	URI      string `env:"DB_URI" envDefault:"postgres://postgres@localhost:5432/dbname"`
-	Username string `env:"DB_USERNAME" envDefault:"postgres"`
-	Password string `env:"DB_PASSWORD,required"`
+	URI string `env:"DB_URI" envDefault:"postgresql://postgres:password@localhost:5555/auth"` // URI для подключения к базе данных
 }
 
+// Security представляет структуру конфигурации безопасности.
 type Security struct {
-	SecretKey string `env:"SECRET_KEY"`
+	SecretKey string `env:"SECRET_KEY"` // Секретный ключ для безопасности
 }
 
+// HTTPConfig представляет структуру конфигурации HTTP.
 type HTTPConfig struct {
-	Port int `env:"HTTP_PORT" envDefault:"8089"`
+	Port int `env:"HTTP_PORT" envDefault:"8089"` // Порт для HTTP-сервера
 }
 
-func Load() (*Config, error) {
-	cfg := &Config{}
-	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("parsing config: %w", err)
+// Parse загружает конфигурацию из переменных окружения.
+func Parse() (*Config, error) {
+	var cfg Config
+
+	// Загрузка конфигурации из переменных окружения
+	if err := env.Parse(&cfg); err != nil {
+		return nil, fmt.Errorf("не удалось загрузить конфигурацию из окружения: %w", err)
 	}
 
-	// Формирование полного URI с учетом пароля
-	cfg.DB.URI = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
-		cfg.DB.Username,
-		cfg.DB.Password,
-		"localhost:5432",
-		"postgres")
+	// Логирование загруженной конфигурации
+	log.Printf("Конфигурация загружена: %+v\n", cfg)
 
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("validating config: %w", err)
+	// Валидация конфигурации
+	if err := validateConfig(&cfg); err != nil {
+		return nil, fmt.Errorf("некорректная конфигурация: %w", err)
 	}
-	return cfg, nil
+
+	return &cfg, nil
 }
 
-func (c *Config) Validate() error {
+// validateConfig проверяет загруж��нную конфигурацию.
+func validateConfig(cfg *Config) error {
+	if cfg.DB.URI == "" {
+		return fmt.Errorf("требуется URI базы данн��х")
+	}
+	if cfg.Security.SecretKey == "" {
+		return fmt.Errorf("требуется секретный ключ безопасности")
+	}
+	if cfg.HTTP.Port <= 0 {
+		return fmt.Errorf("порт HTTP должен быть положительным числом")
+	}
 	return nil
 }

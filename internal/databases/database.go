@@ -1,32 +1,29 @@
-package database
+package databases
 
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
+
+	"github.com/andrepulo/Calendar/internal/config"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/stdlib"
 )
 
-type DB struct {
-	*sql.DB
-}
+type (
+	closeFn func() error
+	DB      = sql.DB
+)
 
-type Config struct {
-	URI string
-}
-
-func New(cfg Config) (*DB, error) {
-	db, err := sql.Open("postgres", cfg.URI)
+func NewDB(cfg *config.DB) (*sql.DB, closeFn, error) {
+	connCfg, err := pgx.ParseURI(cfg.URI)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, nil, fmt.Errorf("parse URI: %w", err)
+	}
+	db := stdlib.OpenDB(connCfg)
+	err = db.Ping()
+	if err != nil {
+		return nil, nil, fmt.Errorf("check connection: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	return &DB{DB: db}, nil
-}
-
-func (db *DB) Close() error {
-	return db.DB.Close()
+	return db, db.Close, nil
 }

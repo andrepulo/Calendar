@@ -7,18 +7,18 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Logger - alias для *zap.SugaredLogger для удобства будущих изменений
 type Logger = *zap.SugaredLogger
 
-// Config - структура для конфигурации логгера
+// Config represents the configuration for the logger
 type Config struct {
-	Level string `env:"LOG_LEVEL" envDefault:"info"`
+	Level     string `env:"LOG_LEVEL" envDefault:"info"`
+	LogToFile bool   `env:"LOG_TO_FILE" envDefault:"false"`
+	FilePath  string `env:"LOG_FILE_PATH" envDefault:"app.log"`
 }
 
-// New создает новый инстанс логгера
-func New(cfg Config) (Logger, error) {
-	level, err := getLogLevel(cfg.Level)
-	if err != nil {
+func New(config Config) (Logger, error) {
+	var level zapcore.Level
+	if err := level.UnmarshalText([]byte(config.Level)); err != nil {
 		return nil, err
 	}
 
@@ -26,9 +26,9 @@ func New(cfg Config) (Logger, error) {
 		TimeKey:        "ts",
 		LevelKey:       "level",
 		NameKey:        "logger",
-		CallerKey:      "caller",
-		MessageKey:     "msg",
+		MessageKey:     "message",
 		StacktraceKey:  "stacktrace",
+		CallerKey:      "caller",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -36,35 +36,26 @@ func New(cfg Config) (Logger, error) {
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
-	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
-		zapcore.AddSync(os.Stdout),
-		level,
-	)
-
-	logger := zap.New(core, zap.AddCaller())
-	zap.ReplaceGlobals(logger)
-
-	return logger.Sugar(), nil
-}
-
-func getLogLevel(levelStr string) (zapcore.Level, error) {
-	switch levelStr {
-	case "debug":
-		return zapcore.DebugLevel, nil
-	case "info":
-		return zapcore.InfoLevel, nil
-	case "warn":
-		return zapcore.WarnLevel, nil
-	case "error":
-		return zapcore.ErrorLevel, nil
-	case "dpanic":
-		return zapcore.DPanicLevel, nil
-	case "panic":
-		return zapcore.PanicLevel, nil
-	case "fatal":
-		return zapcore.FatalLevel, nil
-	default:
-		return zapcore.InfoLevel, nil
+	var core zapcore.Core
+	if config.LogToFile {
+		file, err := os.OpenFile(config.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, err
+		}
+		core = zapcore.NewCore(
+			zapcore.NewJSONEncoder(encoderConfig),
+			zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(file)),
+			zap.NewAtomicLevelAt(level),
+		)
+	} else {
+		core = zapcore.NewCore(
+			zapcore.NewJSONEncoder(encoderConfig),
+			zapcore.AddSync(os.Stdout),
+			zap.NewAtomicLevelAt(level),
+		)
 	}
+
+	l := zap.New(core, zap.AddCaller())
+	zap.ReplaceGlobals(l)
+	return l.Sugar(), nil
 }
