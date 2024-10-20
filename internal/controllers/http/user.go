@@ -13,6 +13,10 @@ type UserHandler struct {
 	userService *users.UserService
 }
 
+type updateUserPayload struct {
+	Password string `json:"password"`
+}
+
 // NewUserHandler создает новый экземпляр UserHandler.
 func NewUserHandler(authService *auth.AuthService, userService *users.UserService) *UserHandler {
 	return &UserHandler{
@@ -64,4 +68,30 @@ func (h *UserHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{"token": token}) // Возвращаем JWT токен в ответе
+}
+
+func (h *handlers) updateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(r.Context())
+	if err != nil {
+		h.handleError(ctx, w, err)
+		return
+	}
+	var changes updateUserPayload
+	err = json.NewDecoder(r.Body).Decode(&changes)
+	if err != nil {
+		h.handleError(ctx, w, err)
+		return
+	}
+	err = r.Body.Close()
+	if err != nil {
+		h.handleError(ctx, w, err)
+		return
+	}
+
+	err = h.users.Update(ctx, userID, changes.Password)
+	if err != nil {
+		h.handleError(ctx, w, err)
+		return
+	}
 }

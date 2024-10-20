@@ -47,11 +47,6 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (strin
 		return "", fmt.Errorf("get user: %w", err)
 	}
 
-	// Сравниваем предоставленный пароль с сохраненным хешем пароля
-	if !s.passwords.Compare(users.Password, password) {
-		return "", apperrs.ErrUnauthorize
-	}
-
 	// Генерируем JWT токен для аутентифицированного пользователя
 	token, err := s.generateToken(user.ID)
 	if err != nil {

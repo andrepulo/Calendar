@@ -36,6 +36,6 @@ func (pa *Password) Value() (driver.Value, error) {
 	if pa == nil {
 		return nil, nil
 	}
-	// Возвращ��ем хешированный пароль.
+	// Возвращаем хешированный пароль.
 	return []byte(*pa), nil
 }

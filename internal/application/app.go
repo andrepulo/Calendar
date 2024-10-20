@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/andrepulo/Calendar/internal/config"
+	handlers "github.com/andrepulo/Calendar/internal/controllers/http"
 	"github.com/andrepulo/Calendar/internal/databases"
 	"github.com/andrepulo/Calendar/internal/logger"
 	httpTransport "github.com/andrepulo/Calendar/internal/transport/http"
@@ -40,6 +41,9 @@ func Run(ctx context.Context) error {
 
 	// Использование нового обработчика для проверки работы сервера
 	http.HandleFunc("/", httpTransport.HealthCheckHandler)
+	usersDomain := buildUsersDomain(cfg, db)
+	authDomain := buildAuthDomain(cfg, usersDomain)
+	hs := handlers.NewHandlers(usersDomain.users, authDomain.auth, l)
 
 	// Запуск сервера
 	server, err := httpTransport.StartServer(ctx, &cfg.HTTP, http.DefaultServeMux)

@@ -3,8 +3,6 @@ package users
 import (
 	"context"
 	"fmt"
-
-	"go.openly.dev/pointy"
 )
 
 // repository определяет интерфейс для работы с репозиторием пользователей.
@@ -60,7 +58,7 @@ func (s *UserService) Update(ctx context.Context, userID UserID, password string
 	}
 	// Создаем изменения для пользователя.
 	changes := UserChanges{
-		Password: pointy.Pointer(hashPass),
+		Password: &Password(hashPass), // Приведение типа к *Password
 	}
 	// Обновляем пользователя в репозитории.
 	return s.repo.Update(ctx, userID, changes)

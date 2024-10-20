@@ -36,7 +36,7 @@ func New(config Config) (Logger, error) {
 		LineEnding:     zapcore.DefaultLineEnding,      // Окончание строки
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,  // Кодировщик уровня логирования
 		EncodeTime:     zapcore.ISO8601TimeEncoder,     // Кодировщик времени
-		EncodeDuration: zapcore.SecondsDurationEncoder, // Кодировщик длит��льности
+		EncodeDuration: zapcore.SecondsDurationEncoder, // Кодировщик длительности
 		EncodeCaller:   zapcore.ShortCallerEncoder,     // Кодировщик вызывающего
 	}
 
